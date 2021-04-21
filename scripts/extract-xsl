@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+import argparse
+import os
+import sys
+import openpyxl
+import io
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input", default="-")
+    parser.add_argument("--sheet-name", help="The name of the sheet to use", default=None)
+    parser.add_argument("--sheet-index", help="The index of the sheet to use", type=int, default=None)
+    parser.add_argument("-H", "--skip-header", help="Skip the first line", action='store_true')
+    parser.add_argument('-s', "--seperator", help="The seperator to use between cells", default='\t')
+    parser.add_argument('-e', "--escaped-seperator", help="The escaped seperator to replace in the cell value if the "
+                                                          "cell contains the seperator.", default=' ')
+    args = parser.parse_args()
+    if args.input == "-":
+        workbook = openpyxl.load_workbook(filename=io.BytesIO(sys.stdin.buffer.read()), read_only=True)
+    else:
+        workbook = openpyxl.load_workbook(args.input, read_only=True)
+    if args.sheet_name:
+        sheet = workbook[args.sheet_name]
+    elif args.sheet_index:
+        sheet = workbook[workbook.sheetnames[args.sheet_index]]
+    else:
+        sheet = workbook[workbook.sheetnames[0]]
+    rows = iter(sheet)
+    if args.skip_header:
+        next(rows)
+    for row in rows:
+        values = []
+        for cell in row:
+            values.append(cell.value.replace(args.seperator, args.escaped_seperator))
+        print(args.seperator.join(values))
+    workbook.close()
